@@ -20,13 +20,14 @@ copy .env.example .env       # then edit, paste your GROQ_API_KEY
 
 ```
 python -m data.fetch_papers
+python -m data.parser
 ```
 
-Downloads the three PDFs at the exact versions required by the brief
-and extracts text with (section, page) tags. Writes
+Downloads the three PDFs at the exact versions required by the brief,
+then extracts text with (section, page) tags. Writes
 `data/manifest.json` with SHA256 and date.
 
-## Run (will be filled in later phases)
+## Run (filled in as phases land)
 
 | Step | Command |
 |---|---|

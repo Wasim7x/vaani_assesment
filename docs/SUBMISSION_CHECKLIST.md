@@ -13,7 +13,7 @@ satisfies it. Status: `done`, `partial`, `needs me`, `todo`.
 | Stand-in | slow, fail, 429, slower under load, streaming | `standin/server.py` | todo |
 | Stand-in | calibrated from real measurements | `standin/calibrate.py`, `standin/params.json` | todo |
 | Stand-in | documents where it is least like real | `docs/writeup.md` §2 | todo |
-| Probe | modest real requests, limits + latency + recovery | `eval/probe.py`, `results/probe_raw.jsonl` | todo |
+| Probe | modest real requests, limits + latency + recovery | `eval/probe.py`, `results/probe_raw.jsonl` | done (70 real reqs; all 7 Table-1 rows filled) |
 | Scheduler | admission, bounded queue, deadline | `relay/scheduler.py` | todo |
 | Scheduler | rate limiter (RPM+TPM) with safety margin | `relay/scheduler.py` | todo |
 | Scheduler | in-flight cap | `relay/scheduler.py` | todo |
@@ -30,7 +30,7 @@ satisfies it. Status: `done`, `partial`, `needs me`, `todo`.
 | Questions | ≥15 questions, ≥4 unanswerable, DRAFT marked | `eval/questions.yaml` | done (18 drafted; **needs student review**) |
 | Grading | rule-based + manual override, no LLM grader | `eval/grade.py` | todo |
 | results.csv | exact columns in exact order | `relay/metrics.py` | todo |
-| Tables | Table 1, 2a, 2b, 3 computed from results.csv | `eval/make_tables.py`, `docs/tables.md` | todo |
+| Tables | Table 1, 2a, 2b, 3 computed from results.csv | `eval/make_tables.py`, `docs/tables.md` | partial (Table 1 done from probe_raw.jsonl; 2a/2b/3 in Phase 6) |
 | Traces | per-request spans, slow-request split | `relay/metrics.py`, `results/traces.jsonl` | todo |
 | Write-up | ≤2 pages, fixed headings in fixed order | `docs/writeup.md` | todo |
 | Write-up | number "we could not have guessed without running" | `docs/writeup.md` §3 | todo |

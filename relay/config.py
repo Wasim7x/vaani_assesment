@@ -50,22 +50,28 @@ RETRIEVAL_SETTINGS = {
 #    penalty so near-duplicate passages do not crowd out complementary ones.
 
 # --- model ---
-GROQ_MODEL = "llama-3.1-8b-instant"
+# Changed from llama-3.1-8b-instant to qwen/qwen3.8-27b after discovering
+# that the user's free-tier account does not have the llama family
+# available; the /models list for this key only has openai/gpt-oss-*,
+# qwen/qwen3.8-27b and a few Arabic/TTS models. See DECISIONS D-003.
+GROQ_MODEL = "qwen/qwen3.8-27b"
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
-# --- scheduler placeholders (filled after the probe) ---
-# These stay "None" until Phase 2 measurements land. Any code that uses
-# them should fail loudly if they are still None at run time.
+# --- scheduler config (filled from Phase 2 probe measurements) ---
+# Measured on 2026-11-10 against qwen/qwen3.8-27b on this free-tier key:
+#   RPM = 30, TPM (total) = 8000, ITPM (input) = 7000, RPD = 1000.
+# All from response headers + 429 bodies. See docs/tables.md.
 @dataclass
 class SchedulerConfig:
-    rpm_limit: int | None = None             # from x-ratelimit-limit-requests
-    tpm_limit: int | None = None             # from x-ratelimit-limit-tokens
-    rpd_limit: int | None = None             # "documented, not reached"
-    safety_margin: float = 0.85              # use 85% of the measured limit
-    max_in_flight: int = 4                   # provisional; tune in Phase 5
-    deadline_ms: int = 15000                 # p95 TTFT target for the person
-    retry_budget_per_req: int = 3            # bounded; respect retry-after
-    global_retry_budget: int = 50            # soft cap over a 60s window
+    rpm_limit: int = 30                  # x-ratelimit-limit-requests / 2 (per-min from daily)
+    tpm_limit: int = 8000                # x-ratelimit-limit-tokens (total)
+    itpm_limit: int = 7000               # input tokens per minute (from 429 body)
+    rpd_limit: int = 1000                # x-ratelimit-limit-requests (daily)
+    safety_margin: float = 0.80          # use 80% of the measured limit; see D-004
+    max_in_flight: int = 4               # provisional; retuned in Phase 5
+    deadline_ms: int = 15000             # p95 TTFT target for the person
+    retry_budget_per_req: int = 3        # bounded; respect retry-after
+    global_retry_budget: int = 50        # soft cap over a 60s window
     backoff_base_ms: int = 500
     backoff_cap_ms: int = 8000
 

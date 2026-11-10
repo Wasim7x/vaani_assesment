@@ -67,3 +67,45 @@ broke. Decisions live in `DECISIONS.md`; this file is the timeline.
   is rare but possible.)
 - Pull the first page of each paper from data/pdfs/ and spot-check
   that the parsed sections in data/text/*.jsonl line up with reality.
+
+## 2026-11-10 — Phase 2 (llm client + probe + Table 1)
+
+- `relay/llm_client.py` — async httpx streaming client, measures
+  TTFT + total, reads `x-ratelimit-*` + `retry-after` on any response.
+  No retries here; scheduler owns that.
+- `relay/budget.py` — persisted JSON ledger with UTC day rollover and
+  corrupt-file resilience; hard-stops when the 250/day ceiling would
+  be exceeded.
+- `eval/probe.py` — four phase-gated batches, each with --dry-run.
+- 15 tests pass.
+- Dropped the full 30-parallel burst and the poll-based `recover`
+  phase after the data they would have produced came out of the other
+  two phases for free (RPM from body, retry-after from header).
+
+### What the probe found
+- First 10 real requests failed with `model_not_found` — the planned
+  `llama-3.1-8b-instant` is not on this key. Called `/v1/models`,
+  swapped to `qwen/qwen3.8-27b`. 10 requests wasted; budget ledger
+  still counts them (honest).
+- Latency on the new model (45 OK, 2-token output): TTFT
+  p50=189ms / p95=391ms / p99=1913ms. The p99 spike is one request —
+  don't over-interpret it. Total ≈ TTFT because outputs are 2 tokens.
+- RPM limit = 30 (server body, high confidence). At 1.2 s spacing we
+  hit 5/40 429s — the limit is a cliff.
+- TPM (total) = 8000; ITPM (input) = 7000. Two different numbers —
+  Groq meters input separately. The `x-ratelimit-limit-tokens` header
+  reports the combined 8000; the 429 body on an ITPM breach reports
+  7000. Important later: our scheduler budgets must include the
+  prompt tokens, not just completion.
+- RPD = 1000 (header, high confidence). Our 250 self-ceiling is well
+  below.
+- TPD = documented, not reached. No TPD header surfaced.
+- In-flight concurrency limit = not measured. Groq does not surface
+  one; we'd need a separate experiment, and it would cost more than
+  it's worth given that RPM already caps us.
+- Retry-After: 2 s on RPM 429, ~10 s on TPM 429. Server-told, so use
+  this instead of blind backoff.
+- Scheduler config now reflects measured numbers; safety margin
+  chosen at 80% (see D-004).
+- Budget after Phase 2: 70 real requests used (10 wasted + 60
+  useful), 180 remain of the 250 ceiling.
