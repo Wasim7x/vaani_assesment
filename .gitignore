@@ -1,0 +1,26 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# downloaded papers are kept locally; the manifest is enough to reproduce
+data/pdfs/
+data/text/
+
+# per-run outputs
+results/budget.json
+results/traces.jsonl
+results/probe_raw.jsonl
+
+# editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,11 @@
+# Pinned to the versions that actually install on Python 3.14 (Windows).
+# pymupdf 1.24 had no 3.14 wheel; 1.28 does.
+httpx==0.28.1
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+pymupdf==1.28.2
+rank-bm25==0.2.2
+python-dotenv==1.2.3
+PyYAML==6.0.3
+pytest==9.1.1
+pytest-asyncio==1.4.0

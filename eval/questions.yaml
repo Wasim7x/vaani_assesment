@@ -1,0 +1,196 @@
+# DRAFT — 18 questions across the 3 papers.
+# YOU (the student) must review and edit this before Phase 6. Change
+# any key_facts that are wrong, add better unanswerables, and pick
+# tricky questions that match your reading of the papers.
+#
+# Fields:
+#   id         stable string id used in results.csv / grading
+#   type       answerable | unanswerable | tricky
+#   question   the actual question the pipeline is asked
+#   paper      expected paper short-name (attention | moshi | hnet | none)
+#   section    expected section (leave blank for unanswerable)
+#   key_facts  list of substrings the correct answer must contain
+#              (case-insensitive; numbers must match exactly)
+#   notes      hint for the grader, not shown to the pipeline
+#   status     DRAFT until the student removes this line
+
+# ---------- Attention Is All You Need (answerable) ----------
+
+- id: att_dmodel
+  type: answerable
+  question: "What is the dimension d_model of the base Transformer?"
+  paper: attention
+  section: "3.1 Encoder and Decoder Stacks"
+  key_facts: ["512"]
+  notes: "d_model = 512 for the base model, stated in §3.1."
+  status: DRAFT
+
+- id: att_heads
+  type: answerable
+  question: "How many attention heads does the base Transformer model use?"
+  paper: attention
+  section: "3.2.2 Multi-Head Attention"
+  key_facts: ["8"]
+  notes: "h = 8 heads in the base config, see §3.2.2 and Table 3."
+  status: DRAFT
+
+- id: att_optimizer
+  type: answerable
+  question: "Which optimizer did the Transformer training use, and what were the beta values?"
+  paper: attention
+  section: "5.3 Optimizer"
+  key_facts: ["Adam", "0.9", "0.98"]
+  notes: "Adam with beta1=0.9, beta2=0.98, epsilon=1e-9."
+  status: DRAFT
+
+- id: att_dropout
+  type: answerable
+  question: "What dropout rate P_drop was applied during Transformer base training?"
+  paper: attention
+  section: "5.4 Regularization"
+  key_facts: ["0.1"]
+  notes: "Pdrop = 0.1 for the base model (§5.4)."
+  status: DRAFT
+
+- id: att_bleu
+  type: answerable
+  question: "What BLEU score did the big Transformer get on WMT 2014 English-to-German?"
+  paper: attention
+  section: "6.1 Machine Translation"
+  key_facts: ["28.4"]
+  notes: "Big Transformer: 28.4 BLEU EN-DE."
+  status: DRAFT
+
+- id: att_posenc
+  type: answerable
+  question: "What kind of positional encoding does the Transformer use in the base configuration?"
+  paper: attention
+  section: "3.5 Positional Encoding"
+  key_facts: ["sinusoidal", "sine"]
+  notes: "Sine/cosine of different frequencies; §3.5."
+  status: DRAFT
+
+# ---------- Moshi (answerable) ----------
+
+- id: moshi_frame_rate
+  type: answerable
+  question: "What frame rate does the Mimi audio codec operate at?"
+  paper: moshi
+  section: "3.3 Audio Tokenization"
+  key_facts: ["12.5"]
+  notes: "Mimi outputs tokens at 12.5 Hz."
+  status: DRAFT
+
+- id: moshi_text_backbone
+  type: answerable
+  question: "Which text language model does Moshi build on?"
+  paper: moshi
+  section: "4 Helium"
+  key_facts: ["Helium"]
+  notes: "Moshi's text backbone is Helium, trained by the authors."
+  status: DRAFT
+
+- id: moshi_delay
+  type: answerable
+  question: "What is the audio-text delay (in frames) Moshi uses between text and audio tokens by default?"
+  paper: moshi
+  section: "4.4 Training stages and hyper-parameters"
+  key_facts: ["delay"]
+  notes: "Student: check exact frame count; delays are randomised during training."
+  status: DRAFT
+
+# ---------- Dynamic Chunking / H-Net (answerable) ----------
+
+- id: hnet_what
+  type: answerable
+  question: "In one sentence, what is H-Net's main architectural contribution?"
+  paper: hnet
+  section: "1 Introduction"
+  key_facts: ["dynamic chunking", "hierarchical"]
+  notes: "End-to-end hierarchical model with data-dependent dynamic chunking."
+  status: DRAFT
+
+- id: hnet_arch
+  type: answerable
+  question: "What overall shape is H-Net described as — U-Net-like or encoder-decoder?"
+  paper: hnet
+  section: "1 Introduction"
+  key_facts: ["U-Net"]
+  notes: "Described as U-Net-like with downsampling/upsampling."
+  status: DRAFT
+
+- id: hnet_lrs
+  type: answerable
+  question: "Which learning-rate schedule does H-Net use for training?"
+  paper: hnet
+  section: "Architecture"
+  key_facts: ["WSD"]
+  notes: "WSD (warmup-stable-decay) schedule."
+  status: DRAFT
+
+# ---------- Unanswerable (papers do not say) ----------
+
+- id: unans_groq
+  type: unanswerable
+  question: "What is the requests-per-minute rate limit on Groq's free tier?"
+  paper: none
+  section: ""
+  key_facts: []
+  notes: "None of the 3 papers mention Groq. A correct answer refuses."
+  status: DRAFT
+
+- id: unans_hnet_cost
+  type: unanswerable
+  question: "How many US dollars did it cost to train the largest H-Net model?"
+  paper: none
+  section: ""
+  key_facts: []
+  notes: "H-Net reports FLOPs/params but not dollar cost."
+  status: DRAFT
+
+- id: unans_moshi_iphone
+  type: unanswerable
+  question: "What is Moshi's end-to-end latency when running on an iPhone 15?"
+  paper: none
+  section: ""
+  key_facts: []
+  notes: "Moshi reports server-side latency, not phone hardware."
+  status: DRAFT
+
+- id: unans_att_date
+  type: unanswerable
+  question: "On what exact date was the Transformer architecture first used in production at Google?"
+  paper: none
+  section: ""
+  key_facts: []
+  notes: "Not stated in the paper."
+  status: DRAFT
+
+# ---------- Tricky (same term different meaning, or needs care) ----------
+
+- id: tricky_chunk_meaning
+  type: tricky
+  question: "What does a 'chunk' mean in the Dynamic Chunking paper, and how is it different from Moshi's audio frames?"
+  paper: hnet
+  section: "2.2 Dynamic Chunking (DC)"
+  key_facts: ["learned", "data-dependent"]
+  notes: "H-Net 'chunk' = learned, data-dependent segment boundaries. Moshi 'frame' = fixed 12.5 Hz audio token. A good answer distinguishes them and cites both papers."
+  status: DRAFT
+
+- id: tricky_attn_vs
+  type: tricky
+  question: "Both Attention Is All You Need and Moshi use 'attention'. Name one way Moshi's attention is different from the original Transformer's."
+  paper: moshi
+  section: "4 Helium"
+  key_facts: ["multi-stream"]
+  notes: "Moshi attends over multiple parallel audio+text streams via RQ-Transformer; original Transformer has single-stream self-attention."
+  status: DRAFT
+
+- id: tricky_d_model_hnet
+  type: tricky
+  question: "Does H-Net use the same d_model notation as the Transformer, and if so what value does it use at its largest size?"
+  paper: hnet
+  section: "Architecture"
+  key_facts: ["d_model"]
+  notes: "Student: verify in the paper. If H-Net uses different notation (e.g. 'width'), the correct answer notes that. Marked tricky because the Transformer notation is widely assumed."
+  status: DRAFT
