@@ -1,0 +1,17 @@
+{
+  "ttft_mu": 5.336,
+  "ttft_sigma": 0.438,
+  "per_token_ms_mean": 18.0,
+  "per_token_ms_jitter": 6.0,
+  "fail_rate": 0.0,
+  "slow_tail_rate": 0.022,
+  "rpm_limit": 30,
+  "tpm_limit": 8000,
+  "retry_after_rpm": 2.0,
+  "retry_after_tpm": 10.0,
+  "rpd_limit": 1000,
+  "load_slowdown_alpha": 0.08,
+  "load_slowdown_floor": 2,
+  "default_tokens_out": 48,
+  "chars_per_token": 4.0
+}

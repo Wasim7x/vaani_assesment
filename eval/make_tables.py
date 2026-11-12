@@ -12,7 +12,7 @@ import statistics
 from collections import defaultdict
 from pathlib import Path
 
-from relay.config import PROBE_RAW, RESULTS_CSV, ROOT
+from relay.config import PROBE_RAW, RESULTS_CSV, ROOT, TRACES_JSONL
 
 
 OUT_MD = ROOT / "docs" / "tables.md"
@@ -204,8 +204,188 @@ def render_latency_note(probe: list[dict]) -> str:
     ])
 
 
+def _load_results() -> list[dict]:
+    if not RESULTS_CSV.exists():
+        return []
+    with RESULTS_CSV.open("r", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def _f(x: str | None) -> float | None:
+    if x is None or x == "":
+        return None
+    try:
+        return float(x)
+    except ValueError:
+        return None
+
+
+def _group_by(rows: list[dict], key: str) -> dict[str, list[dict]]:
+    out: dict[str, list[dict]] = defaultdict(list)
+    for r in rows:
+        out[r.get(key, "")].append(r)
+    return out
+
+
+def _scenario_stats(rows: list[dict]) -> dict:
+    n = len(rows)
+    oks = [r for r in rows if r["status"] == "ok"]
+    rls = [r for r in rows if r["status"] == "rate_limited"]
+    tos = [r for r in rows if r["status"] in ("timeout",)]
+    errs = [r for r in rows if r["status"] == "error"]
+    ttfts = [_f(r["first_token_ms"]) for r in oks]
+    ttfts = [t for t in ttfts if t is not None]
+    totals = [_f(r["total_ms"]) for r in rows]
+    totals = [t for t in totals if t is not None]
+    retries = [int(r["retries"] or 0) for r in rows]
+    tok_in = [int(r["tokens_in"] or 0) for r in oks]
+    tok_out = [int(r["tokens_out"] or 0) for r in oks]
+    src = rows[0]["source"] if rows else ""
+    # First + last timestamps (seconds) for duration.
+    import datetime as dt
+    def ts(r):
+        try:
+            return dt.datetime.fromisoformat(r["start_time"]).timestamp()
+        except Exception:
+            return 0.0
+    tss = [ts(r) for r in rows]
+    duration_s = max(1.0, (max(tss) - min(tss))) if len(tss) >= 2 else 0.0
+    offered_per_min = (n / duration_s * 60) if duration_s > 0 else float("nan")
+    tok_per_ans = (sum(tok_in) + sum(tok_out)) / len(oks) if oks else 0.0
+    return {
+        "n": n,
+        "source": src,
+        "duration_s": duration_s,
+        "offered_per_min": offered_per_min,
+        "ttft_p50": _pct(ttfts, .5) if ttfts else float("nan"),
+        "ttft_p95": _pct(ttfts, .95) if ttfts else float("nan"),
+        "ttft_p99": _pct(ttfts, .99) if ttfts else float("nan"),
+        "total_p50": _pct(totals, .5) if totals else float("nan"),
+        "total_p95": _pct(totals, .95) if totals else float("nan"),
+        "total_p99": _pct(totals, .99) if totals else float("nan"),
+        "pct_ok": 100.0 * len(oks) / n if n else 0.0,
+        "pct_rl": 100.0 * len(rls) / n if n else 0.0,
+        "pct_timeout": 100.0 * (len(tos) + len(errs)) / n if n else 0.0,
+        "retries_per_req": sum(retries) / n if n else 0.0,
+        "tokens_per_answer": tok_per_ans,
+    }
+
+
+def _peak_queue_for(scenario: str) -> int:
+    """Pull peak queue depth from traces.jsonl attrs we stashed there."""
+    if not TRACES_JSONL.exists():
+        return 0
+    peak = 0
+    with TRACES_JSONL.open("r", encoding="utf-8") as f:
+        for line in f:
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if r.get("scenario") == scenario:
+                peak = max(peak, int(r.get("attrs", {}).get("peak_queue_depth", 0)))
+    return peak
+
+
+def _cost_per_1000(tokens_in: float, tokens_out: float) -> str:
+    """No monetary cost on Groq's free tier. Report in tokens instead so
+    the column is honest."""
+    return f"{(tokens_in + tokens_out):.0f} tokens"
+
+
+def render_table2a2b(rows: list[dict]) -> str:
+    if not rows:
+        return "\n## Table 2a / 2b — no load runs yet\n"
+    by_scen = _group_by(rows, "scenario")
+    # Keep a stable order: policy scenarios first, naive variants after.
+    order = []
+    for k in ("steady", "burst", "overload", "halved", "exhausted"):
+        if k in by_scen:
+            order.append(k)
+        if f"{k}_naive" in by_scen:
+            order.append(f"{k}_naive")
+    for k in by_scen:
+        if k not in order:
+            order.append(k)
+
+    out = ["", "## Table 2a — Latency by scenario", "",
+           "| Scenario | Real/Stand-in | Requests | Duration (s) | Offered rate (/min) "
+           "| TTFT p50/p95/p99 (ms) | Total p50/p95/p99 (ms) |",
+           "|---|---|---|---|---|---|---|"]
+    for k in order:
+        s = _scenario_stats(by_scen[k])
+        out.append(
+            f"| {k} | {s['source']} | {s['n']} | {s['duration_s']:.1f} "
+            f"| {s['offered_per_min']:.1f} "
+            f"| {s['ttft_p50']:.0f} / {s['ttft_p95']:.0f} / {s['ttft_p99']:.0f} "
+            f"| {s['total_p50']:.0f} / {s['total_p95']:.0f} / {s['total_p99']:.0f} |"
+        )
+
+    out += ["", "## Table 2b — Outcomes by scenario", "",
+            "| Scenario | Succeeded % | Rate-limited % | Timed out/given up % "
+            "| Retries/request | Peak queue | Tokens/answer | Cost/1000 answers |",
+            "|---|---|---|---|---|---|---|---|"]
+    for k in order:
+        s = _scenario_stats(by_scen[k])
+        peak = _peak_queue_for(k)
+        # cost: all answers were on Groq's free tier, so cost column
+        # reports total tokens per 1000 answers instead.
+        cost = _cost_per_1000(s["tokens_per_answer"] * 1000, 0)
+        out.append(
+            f"| {k} | {s['pct_ok']:.1f} | {s['pct_rl']:.1f} | {s['pct_timeout']:.1f} "
+            f"| {s['retries_per_req']:.2f} | {peak} "
+            f"| {s['tokens_per_answer']:.0f} | {cost} |"
+        )
+    return "\n".join(out)
+
+
+def render_table3(rows: list[dict]) -> str:
+    """Retrieval settings A / B / C — grading breakdown + tokens + TTFT.
+
+    Only real-service rows count: the stand-in echoes the input and
+    cannot produce citations, so grading stand-in rows is meaningless
+    for a retrieval-quality comparison."""
+    if not rows:
+        return "\n## Table 3 — no graded runs yet\n"
+    graded = [r for r in rows
+              if r.get("answer_grade") and r.get("source") == "real"]
+    if not graded:
+        return "\n## Table 3 — no real-service graded runs yet\n"
+    by_set = _group_by(graded, "retrieval_setting")
+    out = ["", "## Table 3 — Retrieval settings (quality vs cost)", "",
+           "| Setting (chunk, k, rerank) | Qs | Correct & cited % | Wrong % "
+           "| Correctly refused % | Tokens/answer | TTFT p50/p95 (ms) "
+           "| Total p50/p95 (ms) |",
+           "|---|---|---|---|---|---|---|---|"]
+    from relay.config import RETRIEVAL_SETTINGS
+    for k in sorted(by_set):
+        rs = by_set[k]
+        n = len(rs)
+        c = sum(1 for r in rs if r["answer_grade"] == "correct")
+        w = sum(1 for r in rs if r["answer_grade"] == "wrong")
+        rc = sum(1 for r in rs if r["answer_grade"] == "refused_correctly")
+        rw = sum(1 for r in rs if r["answer_grade"] == "refused_wrongly")
+        tok = [int(r["tokens_in"] or 0) + int(r["tokens_out"] or 0) for r in rs]
+        ttfts = [_f(r["first_token_ms"]) for r in rs]
+        ttfts = [t for t in ttfts if t is not None]
+        totals = [_f(r["total_ms"]) for r in rs]
+        totals = [t for t in totals if t is not None]
+        cfg = RETRIEVAL_SETTINGS.get(k, {})
+        label = f"{k}: {cfg.get('chunk_tokens','?')}t, k={cfg.get('final_k','?')}, mmr={cfg.get('rerank',False)}"
+        out.append(
+            f"| {label} | {n} | {100*c/n:.1f} | {100*(w+rw)/n:.1f} "
+            f"| {100*rc/n:.1f} | {sum(tok)/n:.0f} "
+            f"| {_pct(ttfts,.5) if ttfts else float('nan'):.0f} / "
+            f"{_pct(ttfts,.95) if ttfts else float('nan'):.0f} "
+            f"| {_pct(totals,.5) if totals else float('nan'):.0f} / "
+            f"{_pct(totals,.95) if totals else float('nan'):.0f} |"
+        )
+    return "\n".join(out)
+
+
 def main() -> int:
     probe = _load_probe()
+    rows = _load_results()
     parts = [
         "# Results tables",
         "",
@@ -213,10 +393,9 @@ def main() -> int:
         "",
         render_table1(probe),
         render_latency_note(probe),
+        render_table2a2b(rows),
+        render_table3(rows),
         "",
-        "## Table 2a / 2b / 3 — pending",
-        "",
-        "Written by Phase 6 once load scenarios have run.",
     ]
     OUT_MD.write_text("\n".join(parts), encoding="utf-8")
     print(f"wrote {OUT_MD}")

@@ -28,15 +28,23 @@ Downloads the three PDFs at the exact versions required by the brief,
 then extracts text with (section, page) tags. Writes
 `data/manifest.json` with SHA256 and date.
 
-## Run (filled in as phases land)
+## Run
 
 | Step | Command |
 |---|---|
-| Probe real service | `python -m eval.probe` (Phase 2) |
-| Calibrate stand-in | `python -m standin.calibrate` (Phase 3) |
-| Start stand-in | `uvicorn standin.server:app` (Phase 3) |
-| Run a load scenario | `python -m eval.run_load --scenario steady --source standin` (Phase 6) |
-| Make tables | `python -m eval.make_tables` (Phase 6) |
+| Probe real service | `python -m eval.probe --phase latency` |
+| Calibrate stand-in from probe | `python -m standin.calibrate` |
+| Start stand-in | `python -m uvicorn standin.server:app --host 127.0.0.1 --port 8000` |
+| Adhoc one question | `python -m relay.pipeline "What is d_model in the base Transformer?"` |
+| Same question via stand-in | `STANDIN_URL=http://127.0.0.1:8000/v1 python -m relay.pipeline --standin "..."` |
+| Run a load scenario | `python -m eval.run_load --scenario steady --source standin --n 20 --standin-url http://127.0.0.1:8000/v1` |
+| Naive A/B | `python -m eval.run_load --scenario burst --source standin --n 20 --naive --standin-url http://127.0.0.1:8000/v1` |
+| Real-Groq quality pass | `python -m eval.quality_run --settings A B C --pause 12 --source real` |
+| Slow-request breakdown | `python -m eval.slow_request --scenario burst` |
+| Make tables | `python -m eval.make_tables` |
+
+Scenarios: `steady`, `burst`, `overload`, `halved` (per-min limit cut in half),
+`exhausted` (daily budget pre-set to ceiling to exercise the drop path).
 
 ## Tests
 
@@ -47,11 +55,19 @@ pytest -q
 ## Layout
 
 ```
-relay/        pipeline, llm client, scheduler, retrieval, metrics, config
-standin/      FastAPI stand-in model + calibration script
+relay/        pipeline, llm client, scheduler, retrieval, metrics, tools, config, budget
+standin/      FastAPI stand-in model + calibration script + params.json
 data/         paper fetch + parser; manifest.json; PDFs and text live here
-eval/         questions, grading, probe, load runner, table builder
+eval/         questions, grading, probe, load runner, quality runner, slow-request, table builder
 results/      results.csv (raw) + traces.jsonl + probe_raw.jsonl + budget.json
 docs/         LOG, DECISIONS, PROMPTS, writeup, tables, CHECKLIST
-tests/        pytest tests for the easy-to-get-wrong bits
+logs/         per-day log files written by the pipeline and scheduler
+tests/        pytest tests (38 total)
 ```
+
+## Scheduler knobs (in `relay/config.py`)
+
+- `rpm_limit=30`, `tpm_limit=8000` — measured on Groq's free tier, `qwen/qwen3.8-27b`.
+- `safety_margin=0.80` — client budgets 80% of the measured limit (D-004).
+- `max_in_flight=4`, `deadline_ms=15000`, `retry_budget_per_req=3`.
+- `DAILY_REAL_REQUEST_CEILING=250` — our self-imposed cap on real Groq per day.

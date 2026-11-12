@@ -1,7 +1,7 @@
 {
-  "date_utc": "2026-11-10",
-  "requests": 70,
-  "tokens_in": 6906,
-  "tokens_out": 171,
-  "rate_limited_hits": 12
+  "date_utc": "2026-11-11",
+  "requests": 133,
+  "tokens_in": 49554,
+  "tokens_out": 1305,
+  "rate_limited_hits": 26
 }
