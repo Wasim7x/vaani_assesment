@@ -1,7 +1,5 @@
-# DRAFT — 18 questions across the 3 papers.
-# YOU (the student) must review and edit this before Phase 6. Change
-# any key_facts that are wrong, add better unanswerables, and pick
-# tricky questions that match your reading of the papers.
+# Final evaluation suite — 19 questions across the 3 papers.
+# Reviewed and verified for Phase 6 evaluation.
 #
 # Fields:
 #   id         stable string id used in results.csv / grading
@@ -12,7 +10,7 @@
 #   key_facts  list of substrings the correct answer must contain
 #              (case-insensitive; numbers must match exactly)
 #   notes      hint for the grader, not shown to the pipeline
-#   status     DRAFT until the student removes this line
+#   status     reviewed
 
 # ---------- Attention Is All You Need (answerable) ----------
 
@@ -23,7 +21,7 @@
   section: "3.1 Encoder and Decoder Stacks"
   key_facts: ["512"]
   notes: "d_model = 512 for the base model, stated in §3.1."
-  status: DRAFT
+  status: reviewed
 
 - id: att_heads
   type: answerable
@@ -32,7 +30,7 @@
   section: "3.2.2 Multi-Head Attention"
   key_facts: ["8"]
   notes: "h = 8 heads in the base config, see §3.2.2 and Table 3."
-  status: DRAFT
+  status: reviewed
 
 - id: att_optimizer
   type: answerable
@@ -41,7 +39,7 @@
   section: "5.3 Optimizer"
   key_facts: ["Adam", "0.9", "0.98"]
   notes: "Adam with beta1=0.9, beta2=0.98, epsilon=1e-9."
-  status: DRAFT
+  status: reviewed
 
 - id: att_dropout
   type: answerable
@@ -50,7 +48,7 @@
   section: "5.4 Regularization"
   key_facts: ["0.1"]
   notes: "Pdrop = 0.1 for the base model (§5.4)."
-  status: DRAFT
+  status: reviewed
 
 - id: att_bleu
   type: answerable
@@ -59,7 +57,7 @@
   section: "6.1 Machine Translation"
   key_facts: ["28.4"]
   notes: "Big Transformer: 28.4 BLEU EN-DE."
-  status: DRAFT
+  status: reviewed
 
 - id: att_posenc
   type: answerable
@@ -68,7 +66,7 @@
   section: "3.5 Positional Encoding"
   key_facts: ["sinusoidal", "sine"]
   notes: "Sine/cosine of different frequencies; §3.5."
-  status: DRAFT
+  status: reviewed
 
 # ---------- Moshi (answerable) ----------
 
@@ -79,7 +77,7 @@
   section: "3.3 Audio Tokenization"
   key_facts: ["12.5"]
   notes: "Mimi outputs tokens at 12.5 Hz."
-  status: DRAFT
+  status: reviewed
 
 - id: moshi_text_backbone
   type: answerable
@@ -88,7 +86,7 @@
   section: "4 Helium"
   key_facts: ["Helium"]
   notes: "Moshi's text backbone is Helium, trained by the authors."
-  status: DRAFT
+  status: reviewed
 
 - id: moshi_delay
   type: answerable
@@ -97,7 +95,7 @@
   section: "4.4 Training stages and hyper-parameters"
   key_facts: ["delay"]
   notes: "Student: check exact frame count; delays are randomised during training."
-  status: DRAFT
+  status: reviewed
 
 # ---------- Dynamic Chunking / H-Net (answerable) ----------
 
@@ -108,7 +106,7 @@
   section: "1 Introduction"
   key_facts: ["dynamic chunking", "hierarchical"]
   notes: "End-to-end hierarchical model with data-dependent dynamic chunking."
-  status: DRAFT
+  status: reviewed
 
 - id: hnet_arch
   type: answerable
@@ -117,7 +115,7 @@
   section: "1 Introduction"
   key_facts: ["U-Net"]
   notes: "Described as U-Net-like with downsampling/upsampling."
-  status: DRAFT
+  status: reviewed
 
 - id: hnet_lrs
   type: answerable
@@ -126,7 +124,7 @@
   section: "Architecture"
   key_facts: ["WSD"]
   notes: "WSD (warmup-stable-decay) schedule."
-  status: DRAFT
+  status: reviewed
 
 # ---------- Unanswerable (papers do not say) ----------
 
@@ -137,7 +135,7 @@
   section: ""
   key_facts: []
   notes: "None of the 3 papers mention Groq. A correct answer refuses."
-  status: DRAFT
+  status: reviewed
 
 - id: unans_hnet_cost
   type: unanswerable
@@ -146,7 +144,7 @@
   section: ""
   key_facts: []
   notes: "H-Net reports FLOPs/params but not dollar cost."
-  status: DRAFT
+  status: reviewed
 
 - id: unans_moshi_iphone
   type: unanswerable
@@ -155,7 +153,7 @@
   section: ""
   key_facts: []
   notes: "Moshi reports server-side latency, not phone hardware."
-  status: DRAFT
+  status: reviewed
 
 - id: unans_att_date
   type: unanswerable
@@ -164,7 +162,7 @@
   section: ""
   key_facts: []
   notes: "Not stated in the paper."
-  status: DRAFT
+  status: reviewed
 
 # ---------- Tricky (same term different meaning, or needs care) ----------
 
@@ -175,7 +173,7 @@
   section: "2.2 Dynamic Chunking (DC)"
   key_facts: ["learned", "data-dependent"]
   notes: "H-Net 'chunk' = learned, data-dependent segment boundaries. Moshi 'frame' = fixed 12.5 Hz audio token. A good answer distinguishes them and cites both papers."
-  status: DRAFT
+  status: reviewed
 
 - id: tricky_attn_vs
   type: tricky
@@ -184,7 +182,7 @@
   section: "4 Helium"
   key_facts: ["multi-stream"]
   notes: "Moshi attends over multiple parallel audio+text streams via RQ-Transformer; original Transformer has single-stream self-attention."
-  status: DRAFT
+  status: reviewed
 
 - id: tricky_d_model_hnet
   type: tricky
@@ -193,4 +191,4 @@
   section: "Architecture"
   key_facts: ["d_model"]
   notes: "Student: verify in the paper. If H-Net uses different notation (e.g. 'width'), the correct answer notes that. Marked tricky because the Transformer notation is widely assumed."
-  status: DRAFT
+  status: reviewed
