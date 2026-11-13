@@ -1,11 +1,12 @@
 """
-Thin async client for Groq's OpenAI-compatible chat/completions, plus
-the same shape pointed at our stand-in. Always streams, so we can
-measure time-to-first-token separately from total time.
+A small async client for Groq's OpenAI-compatible chat/completions.
+Pointing STANDIN_URL at the stand-in uses the same client. We always
+stream, so we can measure time-to-first-token on its own, separate
+from total time.
 
-What this returns is deliberately flat: a dataclass with everything
-the scheduler and metrics code need (status, timings, tokens, headers,
-error). No retries here — the scheduler layer owns that in Phase 5.
+What we return is flat on purpose: one dataclass with everything the
+scheduler and metrics code need (status, timings, tokens, headers,
+error). This file does not retry — the scheduler owns retries.
 """
 from __future__ import annotations
 import asyncio

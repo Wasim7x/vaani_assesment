@@ -1,9 +1,9 @@
 """
-Download the three arXiv papers at exactly the versions the brief
-requires, hash them, and write data/manifest.json.
+Download the three arXiv papers at the exact versions the brief
+asks for, hash each PDF, and save data/manifest.json.
 
-Running this is idempotent. If a PDF with the right SHA256 is already
-on disk we skip the download.
+Safe to re-run. If the PDF already sits on disk, we skip the
+download and just update the hash in the manifest.
 """
 from __future__ import annotations
 import hashlib

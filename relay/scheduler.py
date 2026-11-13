@@ -1,25 +1,27 @@
 """
-Scheduler. Sits between the pipeline and llm_client. Owns:
+The scheduler sits between the pipeline and the LLM client. It
+owns:
 
-  - Client-side RPM + TPM budgeting with an 80% safety margin (D-004).
-  - Bounded in-flight concurrency.
-  - Admission queue with a wall-clock deadline (brief §7 — "people give
-    up sooner than you expect"). Requests that have waited too long are
-    dropped without ever calling the model.
-  - Retry policy that respects server-told retry-after.
-  - Circuit breaker: after N consecutive 5xx/timeouts, open for a
-    cooldown before trying again.
-  - Daily-budget degrade modes: when the real daily quota is nearly
-    gone, cap retries and refuse long prompts.
-  - Naive mode (for the required A/B): fire-and-retry with no RPM/TPM
-    pre-check, no deadline, no cap.
+  - Client-side RPM + TPM budgeting at 80% of the measured limit
+    (see DECISIONS.md Decision 6).
+  - A cap on how many requests talk to the server at once.
+  - A queue with a wall-clock deadline (the brief says people give
+    up sooner than you expect). Requests that would miss the
+    deadline are dropped before any HTTP call.
+  - A retry policy that honors the server's `Retry-After`.
+  - A circuit breaker: after N 5xx/timeouts in a row, we stop
+    calling for a short cool-down.
+  - Daily-budget modes: when the ceiling is close, shrink
+    max_tokens; when it is reached, drop with no HTTP call.
+  - A naive mode (for the required A/B): fire-and-retry with no
+    budget check, no deadline, no cap.
 
-Everything emits structured events that the pipeline folds into the
-Trace and that make_tables.py / write-up can read.
+Every step emits structured events that the pipeline folds into
+Trace, which `make_tables.py` and the write-up can read later.
 
 Design note: the brief says "nobody turned away" is one of the four
-goals we cannot all have. Our choice is to turn people away (status
-= timeout) rather than send a wrong answer late.
+goals we cannot all meet. I chose to turn people away (status =
+timeout) instead of sending a wrong or slow answer.
 """
 from __future__ import annotations
 import asyncio

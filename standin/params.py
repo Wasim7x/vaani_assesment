@@ -1,12 +1,14 @@
 """
-Stand-in tunables. One dataclass + a loader that merges a JSON file
-(written by standin/calibrate.py) with env-var overrides, so the
-server can be re-tuned without a code change.
+Stand-in knobs. One dataclass plus a loader. The loader merges the
+defaults with standin/params.json (written by calibrate.py) and
+with STANDIN_<FIELD> env-var overrides, so the server can be
+re-tuned without changing code.
 
-All latencies are in milliseconds, all rates are per minute, all
-probabilities in [0, 1]. "ttft" = time-to-first-token, modelled as
-a log-normal with mu/sigma derived from probe data (see calibrate).
-Per-token delay drives streaming cadence.
+All latencies are in milliseconds. All rates are per minute. All
+probabilities are in [0, 1]. TTFT = time to first token, modelled
+as a log-normal with mu/sigma fitted from the probe (see
+standin/calibrate.py). The per-token delay sets the streaming
+cadence.
 """
 from __future__ import annotations
 import json

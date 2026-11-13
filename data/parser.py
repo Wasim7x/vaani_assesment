@@ -1,17 +1,17 @@
 """
-Parse the 3 arXiv PDFs into a list of blocks, each tagged with
-(paper_key, page_num, section). Output written to
-data/text/<paper>.jsonl so retrieval does not need PyMuPDF.
+Turn the three arXiv PDFs into blocks. Each block has a paper key,
+a page number, a section, and a bit of text. We save them to
+data/text/<paper>.jsonl, so retrieval does not need PyMuPDF.
 
-Section detection is line-based. PyMuPDF often splits a numbered
-heading across two lines ("3.1" on one line, "Encoder and Decoder
-Stacks" on the next), so we look one line ahead when we see a bare
-"3", "3.1" or "3.2.1". Lone short lines matching a known heading word
-(Abstract, Introduction, References, ...) are also treated as
-sections. Current section carries forward until the next heading.
+How we find sections: we walk the lines. A numbered heading can be
+split across two lines (PyMuPDF puts "3.1" on one line and "Encoder
+and Decoder Stacks" on the next), so we peek at the next line when
+we see a bare "3", "3.1", or "3.2.1". A short line like "Abstract"
+or "Introduction" is also treated as a section. The current section
+carries forward until the next heading.
 
-This is a heuristic good enough to cite [paper, §section, p.N] for a
-reviewer to verify in the PDF.
+This is a rough rule, but good enough to cite as
+[paper, §section, p.N] so a reviewer can look it up in the PDF.
 """
 from __future__ import annotations
 import json

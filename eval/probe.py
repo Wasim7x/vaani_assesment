@@ -1,17 +1,19 @@
 """
-Real-service probe. Four batches, each gated by a --phase flag so we
-can run one at a time and stop if we've learned enough:
+A small probe of the real Groq service. Four phases, each behind a
+--phase flag, so I can run one, read the data, and stop early if I
+have learned enough:
 
-  latency : 50 steady-spaced small requests, measure ttft/total/tokens
-  burst   : 30 requests fired as fast as possible, trigger RPM 429 and
-            read x-ratelimit-* + retry-after
-  tpm     : 10 requests with a large context, trigger TPM 429
-  recover : after a 429, send one request every 2s until a 200,
-            measure the recovery delay
+  latency : 50 small requests at steady pacing. Measures
+            ttft / total / tokens.
+  burst   : 30 requests fired at once. Triggers an RPM 429 so we can
+            read the x-ratelimit-* headers and Retry-After.
+  tpm     : 10 requests with a very long prompt. Triggers a TPM 429.
+  recover : after a 429, send one request every 2 s until we see a
+            200. Measures how long recovery takes.
 
-Every request writes a line to results/probe_raw.jsonl and updates
-results/budget.json. A dry-run mode prints what it would do without
-calling Groq.
+Each request writes a JSON line to results/probe_raw.jsonl and bumps
+results/budget.json. `--dry-run` prints what it would do without
+calling Groq, so I can check the plan safely.
 
 Usage:
   python -m eval.probe --phase latency --dry-run      # safe, no calls

@@ -1,29 +1,30 @@
 """
-Load runner. Executes the pipeline under one of several scenarios,
-against either the real Groq service or the local stand-in, and writes
-one row per request to results/results.csv plus a span trace per
-request to results/traces.jsonl.
+The load runner. It runs the pipeline under one of several
+scenarios, against either real Groq or the local stand-in, and
+writes one row per request to results/results.csv plus one span
+tree per request to results/traces.jsonl.
 
-Scenarios (brief §"What to run"):
-  steady     — N requests spaced evenly at a sub-limit rate.
-  burst      — N requests fired in one go (concurrent).
-  overload   — M bursts of K requests each, sustained for a window.
-  halved     — steady, but with eff_rpm / eff_tpm cut in half (per-min
-               limit halved) — tests graceful degradation.
-  exhausted  — exhausted daily budget: the budget ledger is pre-set to
-               the ceiling, so the scheduler must refuse without calling
-               the LLM.
+Scenarios (from the brief's "What to run"):
+  steady     — N requests spread evenly at a rate below the limit.
+  burst      — N requests fired at the same time.
+  overload   — rapid-fire requests over a time window (over the limit).
+  halved     — steady, but RPM and TPM budgets cut in half, to show
+               how the system degrades.
+  exhausted  — the daily-budget ledger is pre-set to the ceiling, so
+               the scheduler must drop without calling the model.
 
-Required A/B: `--naive` runs the same scenario with the naive scheduler
-(no deadline, no retry-after, no rate-budget).
+The required naive A/B: `--naive` runs the same scenario with a
+scheduler that ignores the rate budget, the deadline, and the
+server's Retry-After.
 
 Usage:
   python -m eval.run_load --scenario steady --source standin --n 60
   python -m eval.run_load --scenario burst  --source standin --n 60
-  python -m eval.run_load --scenario overload --source standin --duration 60 --rps 2
+  python -m eval.run_load --scenario overload --source standin \
+      --duration 60 --rps 2
   python -m eval.run_load --scenario halved --source standin --n 60
   python -m eval.run_load --scenario exhausted --source real --n 10
-  python -m eval.run_load --scenario steady --source real --n 10 --naive
+  python -m eval.run_load --scenario burst --source standin --n 20 --naive
 """
 from __future__ import annotations
 import argparse

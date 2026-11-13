@@ -1,20 +1,21 @@
 """
-BM25 retrieval over the three papers. Three settings:
-  A = 150-token chunks, top-8, no rerank
-  B = 400-token chunks, top-4, no rerank
-  C = 400-token chunks, over-fetch 12 then MMR-dedupe down to 4
+BM25 search over the three papers. Three settings to compare:
+  A = 150-token chunks, top-8, no re-rank.
+  B = 400-token chunks, top-4, no re-rank.
+  C = 400-token chunks, over-fetch 12 then MMR-dedupe down to 4.
 
-Chunks carry (paper, section, start_page, end_page, text) so every
-retrieved passage can be cited as [paper, §section, p.N].
+Each chunk carries (paper, section, start_page, end_page, text), so
+every passage can be cited as [paper, §section, p.N].
 
-Notes on the rerank in C:
-  MMR = maximal marginal relevance. We score each candidate by
-    score = normalised_bm25 - alpha * max_jaccard_with_already_picked
-  and pick greedily. alpha = 0.5 is the usual default; it means a
-  chunk that duplicates one we already have must beat it by > 50% of
-  the BM25 range to be picked. Jaccard is on the lowercased word set
-  (stopwords left in on purpose — "the" and "of" are shared by all
-  chunks so they do not distinguish, and BM25 already discounts them).
+About the MMR re-rank in setting C:
+  MMR = Maximal Marginal Relevance. We score each candidate by
+    score = normalised_bm25 − alpha * max_jaccard_with_already_picked
+  and pick greedily. alpha = 0.5 is the common default: a chunk that
+  mostly repeats one we already picked must beat it by more than 50%
+  of the BM25 range to get in. Jaccard is on the lower-cased word
+  set. Stopwords stay in on purpose — "the" and "of" show up in
+  every chunk, so they do not tell chunks apart, and BM25 already
+  discounts them.
 """
 from __future__ import annotations
 import re

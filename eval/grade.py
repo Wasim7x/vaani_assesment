@@ -1,19 +1,23 @@
 """
-Deterministic, rule-based grading over eval/questions.yaml. No LLM
-grader — the brief rewards honesty, and a keyword grader is easy to
-audit (you can rerun on a different answer and get the same verdict).
+Rule-based grading over eval/questions.yaml. No LLM in the loop,
+on purpose: a keyword grader is cheap, repeatable, and easy to
+check. Re-run it and you get the same verdict.
 
-Grade values match results.csv:
-  correct            — answerable question, all key_facts present (case
-                       insensitive, numbers exact), at least one citation
-                       for the expected paper.
-  wrong              — answerable, missing key_facts or cited the wrong
-                       paper.
-  refused_correctly  — unanswerable, assistant replied with the refusal
-                       phrase (or no citations + no key facts).
-  refused_wrongly    — answerable, assistant refused instead.
+Grade values (same as results.csv):
+  correct            — answerable question. All key_facts present
+                       (case-insensitive; numbers must match
+                       exactly). At least one citation to the
+                       expected paper.
+  wrong              — answerable. Missing key_facts, or the
+                       citation is to the wrong paper.
+  refused_correctly  — unanswerable. The assistant replied with the
+                       refusal phrase (or no citation and no key
+                       facts).
+  refused_wrongly    — answerable. The assistant refused instead of
+                       trying.
 
-Tricky questions are graded like answerable — list their key_facts.
+Tricky questions are graded the same way as answerable ones — their
+key_facts are listed in the YAML.
 """
 from __future__ import annotations
 import argparse

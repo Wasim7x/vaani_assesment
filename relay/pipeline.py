@@ -1,25 +1,26 @@
 """
-The ≥4-step pipeline required by the brief.
+The four-step pipeline the brief asks for.
 
-Steps (in order):
-  1. Understand     — classify the question (which paper is it about)
-                      and extract keywords. Deterministic / rule-based.
-                      If a confident paper emerges, call the
-                      list_sections tool to narrow retrieval (tool call).
-  2. Retrieve       — BM25/MMR over chunks. Branch: if Understand
-                      picked a paper, bias retrieval toward it.
-  3. Draft          — an LLM call (via scheduler) that must cite
-                      passages. Grounded prompt refuses if the context
-                      does not contain the answer.
-  4. Verify         — a cheap local check that the draft contains at
-                      least one valid citation and is not obviously
-                      hallucinating. If verify fails, LOOP once to
-                      redraft with a stricter instruction. This gives
-                      us the required branch AND loop.
+Steps, in order:
+  1. Understand — guess which paper the question is about and pull
+                  a few keywords. Rule-based, no LLM. If the guess
+                  is confident, call the `list_sections` tool to
+                  narrow retrieval (this is the required tool call).
+  2. Retrieve   — BM25 or MMR over the chunk index. Branch: if
+                  Understand picked a paper, bias retrieval toward
+                  that paper.
+  3. Draft      — one LLM call through the scheduler. The prompt
+                  tells the model to cite every claim or reply
+                  with the fixed refusal phrase.
+  4. Verify     — a cheap local check that the draft has at least
+                  one valid citation to a paper we actually
+                  retrieved. If Verify fails, loop once into
+                  Redraft with a stricter instruction. This gives
+                  us the required branch AND loop.
 
-The pipeline never writes to results.csv itself — the caller does, so
-the same pipeline can be called inside a load scenario or from
-`python -m relay.pipeline ask "..."` for debugging.
+The pipeline never writes to results.csv on its own — the caller
+does. That way the same code works inside a load scenario or from
+`python -m relay.pipeline "..."` for a quick manual check.
 """
 from __future__ import annotations
 import argparse

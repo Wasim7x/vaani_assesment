@@ -1,9 +1,12 @@
 """
-Run the question set against the real (or stand-in) service, once per
+Run the question set against real Groq (or the stand-in) once per
 retrieval setting. Appends rows to results.csv so Table 3 can be
-rebuilt. Serial with a configurable inter-request pause so a long-
-prompt pipeline (≈800 tokens of context per question) stays inside
-the measured 8000 TPM.
+rebuilt.
+
+Runs serially with a configurable pause between requests. The
+prompt is about 800 tokens of context per question, so we need a
+pause of ~11 s to stay inside the measured 8,000 TPM on the free
+tier.
 """
 from __future__ import annotations
 import argparse

@@ -1,11 +1,11 @@
 """
-Pick the slowest row from results.csv (optionally filtered by
-scenario), find its trace in traces.jsonl, print a waiting/working/
-retrying split for the write-up §4.
+Pick the slowest row in results.csv (optionally in one scenario),
+find its trace in traces.jsonl, and print a waiting / working /
+retrying split. This is the evidence for write-up §4.
 
 Usage:
   python -m eval.slow_request                      # slowest overall
-  python -m eval.slow_request --scenario overload  # slowest in a scenario
+  python -m eval.slow_request --scenario overload  # slowest in one scenario
 """
 from __future__ import annotations
 import argparse

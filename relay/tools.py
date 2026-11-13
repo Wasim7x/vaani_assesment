@@ -1,15 +1,16 @@
 """
-Tools callable by the pipeline. The brief requires ≥1 tool call; we
-expose two:
+Tools the pipeline can call. The brief asks for at least one tool
+call; we expose two:
 
   list_sections(paper): return the section list parsed out of a PDF.
   page_text(paper, page): return the raw text of one page.
 
-Both are pure-local lookups over data/text/*.jsonl so they add no API
-cost, which keeps the tool call cheap and deterministic.
+Both are local lookups over data/text/*.jsonl. They cost no API
+calls, so the tool call stays cheap and the result is the same each
+time.
 
-The pipeline uses `list_sections` to narrow retrieval when the
-Understand step is confident about the paper but not the section, and
+The pipeline uses `list_sections` to narrow retrieval when Understand
+is confident about the paper but not the section. It uses
 `page_text` as a fallback when a candidate chunk is small or clipped.
 """
 from __future__ import annotations

@@ -1,19 +1,20 @@
 """
-Derive stand-in parameters from the probe measurements.
+Fit the stand-in's knobs from real probe data.
 
-Reads results/probe_raw.jsonl, keeps only successful requests from the
-`latency` phase, fits TTFT and total time to a log-normal, extracts
-rate-limit knobs from the 429 rows, writes standin/params.json.
+Reads results/probe_raw.jsonl, keeps the successful rows of the
+`latency` phase, fits TTFT and total time to a log-normal, and
+pulls rate-limit values from the 429 rows. Writes
+standin/params.json.
 
-Where the stand-in differs from the real thing (and we admit it in the
-write-up):
-  - We use one log-normal for TTFT across all calls. Real Groq TTFT has
-    a heavy p99 tail (one 1913ms call in 45) that a single log-normal
-    won't fully reproduce.
-  - Per-token delay is a jittered constant; real streaming cadence
-    varies with chunk size and server load in ways we don't model.
-  - Our 429s are a strict sliding-window token bucket; Groq appears to
-    use a leaky bucket with the same effective limit.
+Where the stand-in differs from real Groq (also written up in
+docs/writeup.md §2):
+  - We use one log-normal for TTFT across all calls. The real
+    service showed one 1,913 ms p99 spike in a 45-sample probe.
+    A single log-normal cannot reproduce that tail.
+  - The per-token delay is a jittered constant. Real streaming
+    cadence changes with load in ways we did not model.
+  - Our 429s are a strict sliding window. Groq looks more like a
+    leaky bucket at the same effective limit.
 """
 from __future__ import annotations
 import argparse

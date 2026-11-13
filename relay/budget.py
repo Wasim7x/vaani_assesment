@@ -1,12 +1,13 @@
 """
-Daily request/token budget tracker, persisted to results/budget.json.
+A simple daily counter for real Groq use, saved to
+results/budget.json.
 
-Everything that touches the real Groq service must call `record()`
-after the call and may call `remaining()` to decide whether to issue
-another. The scheduler enforces the ceiling and degrades when close;
-this module just owns the counter.
+Anything that calls the real Groq service must call `record()`
+after the call. Anything deciding whether to call Groq can ask
+`remaining()` first. This module just holds the counter; the
+scheduler decides what to do near the limit.
 
-A day rolls over at UTC midnight because Groq's own quota does.
+The counter resets at UTC midnight because Groq's quota does too.
 """
 from __future__ import annotations
 import json

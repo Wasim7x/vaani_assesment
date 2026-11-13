@@ -1,7 +1,8 @@
 """
-All tunable numbers in one place. Every value has a short note on why.
-Numbers that start as placeholders here get replaced in later phases
-once we have measurements from the probe (Phase 2).
+Every knob I can tune lives here. Each value has a short note on why.
+The first draft used placeholder numbers; after the real-service
+probe, I replaced the limits with what I measured (see
+docs/DECISIONS.md and docs/tables.md).
 """
 from dataclasses import dataclass, field
 from pathlib import Path

@@ -1,17 +1,18 @@
 """
-Stand-in for the real Groq service. Mimics OpenAI /chat/completions
-closely enough that relay/llm_client.py hits it unchanged by pointing
-STANDIN_URL at it.
+A stand-in for the real Groq service. It copies OpenAI's
+/chat/completions well enough that relay/llm_client.py can point at
+it just by setting STANDIN_URL.
 
-What it does (and what the brief required):
-  - slow: TTFT drawn from a log-normal calibrated to the probe.
-  - fail: fail_rate% of requests return HTTP 500.
-  - 429: token-bucket RPM + TPM limits; body + Retry-After match Groq.
-  - slower under load: ttft is multiplied by (1 + alpha * excess_in_flight).
-  - streams a piece at a time: real SSE with usage chunk at the end.
-  - says where it differs from the real thing: documented in docs/writeup.md,
-    the biggest differences are deterministic per-token delay (real Groq
-    varies more) and no true tail of multi-second 200s.
+What it can do (one bullet per brief requirement):
+  - Be slow: TTFT drawn from a log-normal, calibrated on the probe.
+  - Fail: fail_rate% of requests return HTTP 500.
+  - Refuse: a 429 when the RPM or TPM bucket is full; body and
+    Retry-After match Groq.
+  - Slow down under load: TTFT * (1 + alpha * excess_in_flight).
+  - Stream in pieces: real SSE with a final usage chunk.
+  - Say where it differs from real Groq: biggest gaps are the
+    jittered-constant per-token delay and the thin p99 tail of
+    multi-second responses. See docs/writeup.md §2.
 
 Run:
   uvicorn standin.server:app --host 127.0.0.1 --port 8000

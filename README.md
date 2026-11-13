@@ -1,12 +1,27 @@
-# vaani_assesment
 # The Relay
 
-Pipeline that answers questions about 3 arXiv papers using Groq, with a
-local stand-in model service and a scheduler that works inside the real
-free-tier limits.
+A small pipeline that answers questions about three arXiv papers.
+It uses Groq's free tier for the model, a local stand-in service for
+load testing, and a scheduler that works inside the measured rate
+limits.
 
-See [docs/writeup.md](docs/writeup.md) for the 2-page write-up and
-[docs/tables.md](docs/tables.md) for the results tables.
+For the full write-up, see [docs/writeup.md](docs/writeup.md).
+For the choices I made and why, see [docs/DECISIONS.md](docs/DECISIONS.md).
+For the tables of results, see [docs/tables.md](docs/tables.md).
+
+## The three papers
+
+The pipeline only answers from these three papers, at these exact
+versions:
+
+- "Attention Is All You Need" — arXiv 1706.03762v7
+- "Moshi: a speech-text foundation model for real-time dialogue" —
+  arXiv 2410.00037v1
+- "Dynamic Chunking for End-to-End Hierarchical Sequence Modeling" —
+  arXiv 2507.07955v2
+
+The fetch script downloads them and writes a manifest with SHA256
+hashes.
 
 ## Setup
 
@@ -14,37 +29,43 @@ See [docs/writeup.md](docs/writeup.md) for the 2-page write-up and
 python -m venv .venv
 .venv\Scripts\activate       # Windows
 pip install -r requirements.txt
-copy .env.example .env       # then edit, paste your GROQ_API_KEY
+copy .env.example .env       # then paste your GROQ_API_KEY
 ```
 
-## Fetch papers (once)
+You need a free Groq account and a key in `.env`. The key is never
+sent to any other service. `.env` is in `.gitignore`.
+
+## Fetch the papers (once)
 
 ```
-python -m data.fetch_papers
-python -m data.parser
+python -m data.fetch_papers     # downloads the 3 PDFs
+python -m data.parser           # extracts text into data/text/*.jsonl
 ```
-
-Downloads the three PDFs at the exact versions required by the brief,
-then extracts text with (section, page) tags. Writes
-`data/manifest.json` with SHA256 and date.
 
 ## Run
 
-| Step | Command |
+| What you want | Command |
 |---|---|
-| Probe real service | `python -m eval.probe --phase latency` |
-| Calibrate stand-in from probe | `python -m standin.calibrate` |
-| Start stand-in | `python -m uvicorn standin.server:app --host 127.0.0.1 --port 8000` |
-| Adhoc one question | `python -m relay.pipeline "What is d_model in the base Transformer?"` |
-| Same question via stand-in | `STANDIN_URL=http://127.0.0.1:8000/v1 python -m relay.pipeline --standin "..."` |
+| Measure the real service | `python -m eval.probe --phase latency` |
+| Fit the stand-in to the probe | `python -m standin.calibrate` |
+| Start the stand-in | `python -m uvicorn standin.server:app --host 127.0.0.1 --port 8000` |
+| Ask one question (real Groq) | `python -m relay.pipeline "What is d_model in the base Transformer?"` |
+| Same question via the stand-in | `STANDIN_URL=http://127.0.0.1:8000/v1 python -m relay.pipeline --standin "..."` |
 | Run a load scenario | `python -m eval.run_load --scenario steady --source standin --n 20 --standin-url http://127.0.0.1:8000/v1` |
-| Naive A/B | `python -m eval.run_load --scenario burst --source standin --n 20 --naive --standin-url http://127.0.0.1:8000/v1` |
-| Real-Groq quality pass | `python -m eval.quality_run --settings A B C --pause 12 --source real` |
-| Slow-request breakdown | `python -m eval.slow_request --scenario burst` |
-| Make tables | `python -m eval.make_tables` |
+| Run the naive A/B version | `python -m eval.run_load --scenario burst --source standin --n 20 --naive --standin-url http://127.0.0.1:8000/v1` |
+| Grade quality on real Groq | `python -m eval.quality_run --settings A B C --pause 12 --source real` |
+| Break down one slow request | `python -m eval.slow_request --scenario burst` |
+| Rebuild the tables | `python -m eval.make_tables` |
 
-Scenarios: `steady`, `burst`, `overload`, `halved` (per-min limit cut in half),
-`exhausted` (daily budget pre-set to ceiling to exercise the drop path).
+The five load scenarios are:
+
+- `steady` — N requests at a steady rate, under the limit.
+- `burst` — N requests all at once.
+- `overload` — sustained traffic above the limit for a window.
+- `halved` — same as steady but with the per-minute limit cut in
+  half, to show graceful degradation.
+- `exhausted` — the daily budget is pre-set to the ceiling, so the
+  scheduler must refuse without calling the real API.
 
 ## Tests
 
@@ -52,22 +73,40 @@ Scenarios: `steady`, `burst`, `overload`, `halved` (per-min limit cut in half),
 pytest -q
 ```
 
-## Layout
+## Folder layout
 
 ```
-relay/        pipeline, llm client, scheduler, retrieval, metrics, tools, config, budget
-standin/      FastAPI stand-in model + calibration script + params.json
-data/         paper fetch + parser; manifest.json; PDFs and text live here
-eval/         questions, grading, probe, load runner, quality runner, slow-request, table builder
-results/      results.csv (raw) + traces.jsonl + probe_raw.jsonl + budget.json
-docs/         LOG, DECISIONS, PROMPTS, writeup, tables, CHECKLIST
-logs/         per-day log files written by the pipeline and scheduler
-tests/        pytest tests (38 total)
+relay/        pipeline, LLM client, scheduler, retrieval, metrics, tools
+standin/      the fake service + calibration + params.json
+data/         fetch + parse + manifest + PDFs and text
+eval/         questions, grading, probe, load runner, quality runner, tables
+results/      results.csv, traces.jsonl, probe_raw.jsonl, budget.json
+docs/         write-up, decisions, log, prompts, tables, submission checklist
+logs/         one log file per UTC day
+tests/        pytest suite
 ```
 
-## Scheduler knobs (in `relay/config.py`)
+## Scheduler settings (see `relay/config.py`)
 
-- `rpm_limit=30`, `tpm_limit=8000` — measured on Groq's free tier, `qwen/qwen3.8-27b`.
-- `safety_margin=0.80` — client budgets 80% of the measured limit (D-004).
-- `max_in_flight=4`, `deadline_ms=15000`, `retry_budget_per_req=3`.
-- `DAILY_REAL_REQUEST_CEILING=250` — our self-imposed cap on real Groq per day.
+- `rpm_limit = 30` — requests per minute. Measured on Groq's free
+  tier for `qwen/qwen3.8-27b`.
+- `tpm_limit = 8000` — tokens per minute, combined input + output.
+- `itpm_limit = 7000` — input-only tokens per minute. Groq meters
+  this separately.
+- `safety_margin = 0.80` — I budget 80% of the measured limit, so a
+  short overshoot does not cause 429s. See Decision 6.
+- `max_in_flight = 4` — at most 4 requests to the real service at
+  the same time.
+- `deadline_ms = 15000` — every request has 15 seconds to finish,
+  or it is dropped.
+- `retry_budget_per_req = 3` — up to 3 retries per request.
+- `DAILY_REAL_REQUEST_CEILING = 250` — my self-imposed cap on real
+  Groq per day. The real free-tier limit is 1,000.
+
+## Where the numbers come from
+
+Every number in `docs/tables.md` is computed from
+`results/results.csv` (for load and quality) and
+`results/probe_raw.jsonl` (for the real-service limits). I do not
+hand-write any number in a table. Run `python -m eval.make_tables`
+to rebuild them.

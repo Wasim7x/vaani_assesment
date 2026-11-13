@@ -1,18 +1,18 @@
 """
-Metrics: one place that writes the brief's required results.csv and
-the per-request traces.jsonl.
+One place that writes the two raw files: results.csv (one row per
+request) and traces.jsonl (one span tree per request).
 
-results.csv columns (exact order required by the brief):
-    request_id, scenario, source, start_time, first_token_ms, total_ms,
-    status, retries, tokens_in, tokens_out, retrieval_setting,
-    answer_grade
+results.csv columns, in the order the brief asks for:
+    request_id, scenario, source, start_time, first_token_ms,
+    total_ms, status, retries, tokens_in, tokens_out,
+    retrieval_setting, answer_grade
 
-Status values: ok | rate_limited | timeout | error
-Answer grade values: correct | wrong | refused_correctly | refused_wrongly
-(or empty when we did not grade this row — the load scenarios only
-grade questions from eval/questions.yaml).
+Status values: ok | rate_limited | timeout | error.
+Grade values: correct | wrong | refused_correctly | refused_wrongly
+(blank if the row was not graded — load scenarios only grade
+questions from eval/questions.yaml).
 
-Every number used in docs/tables.md must be computable from this file.
+Every number in docs/tables.md must be computable from this file.
 """
 from __future__ import annotations
 import csv

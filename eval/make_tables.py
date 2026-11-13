@@ -1,9 +1,12 @@
 """
-Build the results tables from raw data. Keeps tables honest: every
-number is computed here from results/probe_raw.jsonl and
-results/results.csv, never hand-written.
+Build the results tables from the raw files. Every number comes
+from results/probe_raw.jsonl (Table 1) or results/results.csv
+(Tables 2a, 2b, 3). We never hand-write a number in a table, so
+re-running this file is the way to check the write-up's numbers.
 
-In Phase 2 only Table 1 is populated. Phase 6 adds Tables 2a/2b/3.
+Early in the project (Phase 2) only Table 1 was filled. Tables 2a,
+2b, and 3 were added in Phase 6, once the load and quality runs
+had written their rows.
 """
 from __future__ import annotations
 import csv
